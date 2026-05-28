@@ -1,0 +1,55 @@
+# ==============================================================
+#  packages/requirements.txt
+#
+#  Purpose : Sample dependency file for security scanning demo.
+#  Context : Used by Trivy to detect known CVEs in Python packages.
+#
+#  WARNING : These versions are intentionally outdated and vulnerable.
+#            Do NOT use in any real project or production environment.
+# ==============================================================
+
+
+# --------------------------------------------------------------
+#  CRITICAL  (CVSS >= 9.0)
+#  Trivy expected exit: non-zero (security gate blocks merge)
+# --------------------------------------------------------------
+
+PyYAML==5.1
+# CVE-2020-1747 | CVSS 9.8 | CRITICAL
+# Arbitrary code execution via yaml.load() with untrusted input.
+# Fixed in: PyYAML >= 5.3.1
+
+Pillow==8.1.0
+# CVE-2021-25289 | CVSS 9.8 | CRITICAL
+# Heap buffer overflow in TiffDecode.c when processing malicious images.
+# Fixed in: Pillow >= 8.2.0
+
+
+# --------------------------------------------------------------
+#  HIGH  (CVSS 7.0 – 8.9)
+#  Trivy expected exit: non-zero (security gate blocks merge)
+# --------------------------------------------------------------
+
+Jinja2==2.10.1
+# CVE-2019-10906 | CVSS 8.1 | HIGH
+#   Sandbox escape via str.format_map() in the sandbox environment.
+# CVE-2020-28493 | CVSS 7.5 | HIGH
+#   ReDoS (Regular Expression Denial of Service) vulnerability.
+# Fixed in: Jinja2 >= 2.11.3
+
+
+# --------------------------------------------------------------
+#  MEDIUM  (CVSS 4.0 – 6.9)
+#  Trivy expected exit: non-zero (security gate blocks merge)
+# --------------------------------------------------------------
+
+urllib3==1.24.1
+# CVE-2019-11236 | CVSS 6.5 | MEDIUM
+# CRLF injection in request headers allows HTTP response splitting.
+# Fixed in: urllib3 >= 1.24.2
+
+requests==2.18.0
+# CVE-2018-18074 | CVSS 5.0 | MEDIUM
+# Authorization header is forwarded on HTTP redirect (credential exposure).
+# Fixed in: requests >= 2.20.0
+# Note: requests wraps urllib3, so urllib3 CVEs apply transitively.

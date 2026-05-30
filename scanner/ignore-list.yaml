@@ -1,0 +1,43 @@
+# ==============================================================
+#  scanner/ignore-list.yaml
+#
+#  Purpose:
+#    List of CVEs that have been reviewed and temporarily
+#    accepted as known risk for a specific project.
+#
+#  How it works:
+#    - Entries are filtered out before the Security Gate runs.
+#    - Each entry must include a human-readable reason and
+#      an expiry date (expires).
+#    - After the expiry date, the CVE is detected again
+#      automatically — no code change required.
+#
+#  Structure:
+#    <project-name>:
+#      <CVE-ID>:
+#        reason:  "<why this CVE is temporarily accepted>"
+#        expires: "<YYYY-MM-DD>"
+#
+#  Important:
+#    CRITICAL and HIGH CVEs should NOT be added here without
+#    explicit approval. This list is intended for MEDIUM/LOW
+#    vulnerabilities under active remediation.
+# ==============================================================
+
+
+demo-project:
+
+  CVE-2018-18074:
+    # requests 2.18.0 → 2.20.0 | MEDIUM | CVSS 5.0
+    # Authorization header forwarded on HTTP redirect.
+    # Accepted until requests upgrade is completed.
+    reason:  "Accepted risk: requests upgrade to >=2.20.0 scheduled"
+    expires: "2026-12-31"
+
+  CVE-2019-11236:
+    # urllib3 1.24.1 → 1.24.2 | MEDIUM | CVSS 6.5
+    # CRLF injection in request headers.
+    # Accepted temporarily: urllib3 is a transitive dependency of requests.
+    # Will be resolved together with CVE-2018-18074 upgrade.
+    reason:  "Accepted risk: resolved transitively with requests upgrade"
+    expires: "2026-12-31"

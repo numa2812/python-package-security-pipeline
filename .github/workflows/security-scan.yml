@@ -1,0 +1,92 @@
+# ==============================================================
+#  .github/workflows/security-scan.yml
+#
+#  Purpose:
+#    Automated vulnerability scanning pipeline for Python packages.
+#    Mirrors the Security Gate concept implemented in the
+#    original thesis project (GitLab CI/CD).
+#
+#  Triggers:
+#    - pull_request → Security Gate (blocks merge on findings)
+#    - push to main → Post-merge verification
+#
+#  Corresponds to (GitLab CI/CD equivalent):
+#    ci/python-security/python-security.gitlab-ci.yml
+#      - trivy_python_scan     → security-scan job
+#      - trivy_scheduled_scan  → push-to-main trigger
+# ==============================================================
+
+name: Security Scan
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      # Run only when dependency list or scanner code changes.
+      # Avoids unnecessary CI runs on docs/README updates.
+      - 'packages/requirements.txt'
+      - 'scanner/**'
+
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/requirements.txt'
+      - 'scanner/**'
+
+jobs:
+  security-scan:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Check out the repository ──────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # actions/checkout fetches the repository code
+        # into the GitHub Actions runner (virtual machine).
+        # Without this, no files would be available.
+
+      # ── Step 2: Set up Python ─────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+        # Installs the specified Python version on the runner.
+        # Equivalent to having Python pre-installed in a
+        # GitLab CI/CD Docker image.
+
+      # ── Step 3: Install Python dependencies ───────────────
+      - name: Install Python dependencies
+        run: pip install pyyaml
+        # PyYAML is required by scanner/main.py to load
+        # ignore-list.yaml at runtime.
+        # Only minimal dependencies are installed (no dev tools).
+
+      # ── Step 4: Install Trivy ─────────────────────────────
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+          trivy --version
+        # Official one-liner installer from Trivy's repository.
+        # Installs the latest stable release to /usr/local/bin
+        # so that `trivy` is available on PATH for scan.py.
+        # `trivy --version` verifies the installation succeeded.
+
+      # ── Step 5: Run security scan (Security Gate) ─────────
+      - name: Run security scan
+        run: |
+          python -m scanner.main packages/requirements.txt --ignore-list
+        # -m scanner.main  → runs main.py as a module from the project root,
+        #                    ensuring `from scanner.scan import ...` resolves correctly.
+        # --ignore-list    → applies scanner/ignore-list.yaml (MEDIUM CVEs suppressed).
+        #
+        # Exit codes (defined in scanner/main.py):
+        #   0 → no blocking vulnerabilities → job succeeds (✅ green)
+        #   1 → MEDIUM/HIGH/CRITICAL found  → job fails   (❌ red, PR blocked)
+        #   2 → tool/configuration error    → job fails   (❌ red)
+        #
+        # GitHub Actions reads the exit code automatically:
+        # non-zero exit → step fails → job fails → PR merge blocked.

@@ -1,0 +1,7 @@
+# scanner/requirements.txt
+#
+# Runtime dependencies for the Python scanner (scanner/).
+# Pinned to exact versions so CI builds are reproducible
+# and unaffected by upstream releases.
+
+pyyaml==6.0.2

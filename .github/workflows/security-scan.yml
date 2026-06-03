@@ -17,6 +17,10 @@
 # ==============================================================
 
 name: Security Scan
+# Minimal permissions: read-only access to repository contents.
+# No write access is needed — this workflow only reads code and runs scans.
+permissions:
+  contents: read
 
 on:
   pull_request:
@@ -58,22 +62,22 @@ jobs:
         # GitLab CI/CD Docker image.
 
       # ── Step 3: Install Python dependencies ───────────────
-      - name: Install Python dependencies
-        run: pip install pyyaml
-        # PyYAML is required by scanner/main.py to load
-        # ignore-list.yaml at runtime.
-        # Only minimal dependencies are installed (no dev tools).
+      - name: Install scanner dependencies
+        run: pip install -r scanner/requirements.txt
+        # Versions are pinned in scanner/requirements.txt so that
+        # upstream releases cannot silently break the CI build.
 
       # ── Step 4: Install Trivy ─────────────────────────────
       - name: Install Trivy
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b /usr/local/bin
+          TRIVY_VERSION="0.69.3"
+          curl -sfL \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+            | tar -xzf - -C /usr/local/bin trivy
           trivy --version
-        # Official one-liner installer from Trivy's repository.
-        # Installs the latest stable release to /usr/local/bin
-        # so that `trivy` is available on PATH for scan.py.
-        # `trivy --version` verifies the installation succeeded.
+        # Pinned to a specific GitHub Release tag so the build is
+        # reproducible and not affected by changes on the upstream
+        # main branch.
 
       # ── Step 5: Run security scan (Security Gate) ─────────
       - name: Run security scan

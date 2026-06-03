@@ -1,0 +1,117 @@
+# ==============================================================
+#  .gitlab-ci.yml  —  REFERENCE ONLY / NOT EXECUTABLE
+#
+#  This file documents the original GitLab CI/CD pipeline design
+#  from the thesis project, anonymised for public portfolio use.
+#
+#  The working implementation for this repository uses
+#  GitHub Actions instead:
+#    → see .github/workflows/security-scan.yml
+#
+#  Why keep this file?
+#    To show that the same Security Gate concept was originally
+#    designed and implemented in GitLab CI/CD, and later
+#    ported to GitHub Actions for this public demo.
+#
+#  Correspondence to GitHub Actions:
+#
+#    .gitlab-ci.yml                  security-scan.yml
+#    ─────────────────────────────────────────────────
+#    stages:                         jobs:
+#    image:                          runs-on: + uses: setup-python
+#    rules: merge_request_event  →   on: pull_request
+#    rules: schedule             →   on: schedule (or push)
+#    script:                         run:
+#    needs:                          needs:
+#
+#  Confidentiality note:
+#    All company-specific registry paths, runner tags,
+#    project names, and personal identifiers have been
+#    removed or replaced with generic placeholders.
+# ==============================================================
+
+
+stages:
+  - security
+
+
+# ──────────────────────────────────────────────────────────────
+#  Default settings applied to all jobs
+#
+#  In the original thesis project, jobs ran on dedicated
+#  GitLab Runners tagged for a cloud/Kubernetes environment.
+#  Replaced here with a standard public Docker image.
+# ──────────────────────────────────────────────────────────────
+
+default:
+  image: python:3.11-slim    # original: company-internal Docker image
+  # tags:                    # original: cloud/k8s runner tags (removed)
+  #   - <runner-tag>
+
+
+# ──────────────────────────────────────────────────────────────
+#  Process 1: "Package Request and Approval"  (MR-triggered)
+#
+#  Scans only the packages/ directory changed in the MR.
+#  Blocks the merge if MEDIUM/HIGH/CRITICAL CVEs are found.
+#
+#  Corresponds to GitHub Actions trigger:
+#    on:
+#      pull_request:
+#        paths: ['packages/requirements.txt', 'scanner/**']
+# ──────────────────────────────────────────────────────────────
+
+trivy_scan_on_merge_request:
+  stage: security
+  before_script:
+    # Install Trivy CLI (same approach used in GitHub Actions workflow)
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh
+        | sh -s -- -b /usr/local/bin
+    - pip install pyyaml
+  script:
+    # Run the security scan pipeline as a module.
+    # exit 0 → no blocking CVEs → MR can be merged
+    # exit 1 → MEDIUM/HIGH/CRITICAL found → MR is blocked
+    - python -m scanner.main packages/requirements.txt --ignore-list
+  rules:
+    # Execute only on Merge Request events that touch
+    # the packages directory (equivalent to GitHub Actions `paths` filter)
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        - packages/requirements.txt
+        - scanner/**/*
+
+
+# ──────────────────────────────────────────────────────────────
+#  Process 2: "CVE Lifecycle Management"  (scheduled)
+#
+#  In the original thesis, a daily scheduled pipeline scanned
+#  ALL projects and sent email alerts for CRITICAL/HIGH findings.
+#
+#  This simplified version demonstrates the scheduled-scan concept
+#  without company-specific notification logic (SMTP, mailing lists).
+#
+#  Corresponds to GitHub Actions trigger:
+#    on:
+#      schedule:
+#        - cron: '0 6 * * *'
+#      push:
+#        branches: [main]
+# ──────────────────────────────────────────────────────────────
+
+trivy_scheduled_scan:
+  stage: security
+  before_script:
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh
+        | sh -s -- -b /usr/local/bin
+    - pip install pyyaml
+  script:
+    # Daily scan with ignore list applied.
+    # Results are visible in the GitLab pipeline log.
+    # In the original thesis, CRITICAL/HIGH findings triggered
+    # an automated email to the responsible team.
+    - python -m scanner.main packages/requirements.txt --ignore-list
+  rules:
+    # Execute only on pipeline schedules
+    # (configure via GitLab UI: CI/CD → Schedules)
+    - if: $CI_PIPELINE_SOURCE == "schedule"

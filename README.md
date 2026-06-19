@@ -77,6 +77,12 @@ packages/requirements.txt
 - **CI/CD parity**: `make scan` reproduces the exact same scan that runs in GitHub Actions
 - **GitLab CI/CD reference** (`docs/.gitlab-ci.yml`): documents the original thesis pipeline design
 
+> **MVP scope:** In this public demo, the ignore list demonstrates the
+> accepted-risk lifecycle for selected MEDIUM findings. The policy comments
+> require explicit approval for CRITICAL and HIGH findings, but the demo
+> does not enforce severity or approval metadata in code. Validating these
+> constraints before suppression would be a production hardening step.
+
 ---
 
 ## Getting Started
@@ -203,6 +209,7 @@ project names, and credentials have been removed.
 ## Author
 
 **Yuya Kayanuma**
+
 B.Sc. Wirtschaftsinformatik, DHBW Karlsruhe (exp. 09/2026)
 Focus: Platform Engineering · DevOps · DevSecOps
 

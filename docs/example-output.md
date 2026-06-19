@@ -85,9 +85,11 @@ $ python -m scanner.main packages/requirements.txt --ignore-list
 
 **Exit code:** `1` → CI job fails → Pull Request merge is blocked.
 
-> **Note:** Even with the ignore list applied, CRITICAL and HIGH CVEs
-> are never suppressed by design. Only MEDIUM entries are listed in
-> `ignore-list.yaml`. See `scanner/classify.py` for the gate threshold.
+> **MVP scope:** In this public demo, the ignore list demonstrates the
+> accepted-risk lifecycle for selected MEDIUM findings. The policy comments
+> require explicit approval for CRITICAL and HIGH findings, but the demo
+> does not enforce severity or approval metadata in code. Validating these
+> constraints before suppression would be a production hardening step.
 
 ---
 

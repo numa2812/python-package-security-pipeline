@@ -7,7 +7,7 @@
 #  Requirements:
 #    - Python 3.11+
 #    - Trivy CLI  (https://trivy.dev)
-#    - pip install pyyaml
+#    - pip install -r scanner/requirements.txt
 #
 #  Usage:
 #    make scan              # scan with ignore list applied
@@ -22,6 +22,9 @@
 # Default target: show help
 .DEFAULT_GOAL := help
 
+# Trivy version — keep in sync with .github/workflows/security-scan.yml
+TRIVY_VERSION ?= 0.69.3
+
 
 # ──────────────────────────────────────────────────────────────
 #  Help
@@ -31,8 +34,8 @@ help:
 	@echo ""
 	@echo "  Python Package Security Pipeline — available commands"
 	@echo ""
-	@echo "  make install          Install Python dependencies (pyyaml)"
-	@echo "  make trivy-install    Install Trivy CLI via official installer"
+	@echo "  make install          Install scanner dependencies"
+	@echo "  make trivy-install    Install Trivy $(TRIVY_VERSION) CLI (Linux/macOS)"
 	@echo "  make scan             Run security scan with ignore list applied"
 	@echo "  make scan-all         Run security scan showing all CVEs"
 	@echo ""
@@ -43,17 +46,24 @@ help:
 # ──────────────────────────────────────────────────────────────
 
 install:
-	pip install pyyaml
+	pip install -r scanner/requirements.txt
 	@echo ""
 	@echo "  ✅  Python dependencies installed."
 	@echo ""
 
 trivy-install:
-	curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-		| sh -s -- -b /usr/local/bin
-	trivy --version
+	@# Detect OS (Darwin = macOS) and CPU architecture, then download the matching
+	@# Trivy binary directly from GitHub Releases at the pinned TRIVY_VERSION.
+	@OS=$$(uname -s); \
+	ARCH=$$(uname -m); \
+	if [ "$$OS" = "Darwin" ]; then OS_TAG="macOS"; else OS_TAG="Linux"; fi; \
+	if [ "$$ARCH" = "arm64" ] || [ "$$ARCH" = "aarch64" ]; then ARCH_TAG="ARM64"; else ARCH_TAG="64bit"; fi; \
+	ARCHIVE="trivy_$(TRIVY_VERSION)_$${OS_TAG}-$${ARCH_TAG}.tar.gz"; \
+	echo "  Downloading $${ARCHIVE} ..."; \
+	curl -sfL "https://github.com/aquasecurity/trivy/releases/download/v$(TRIVY_VERSION)/$${ARCHIVE}" | tar -xzf - -C /usr/local/bin trivy
+	@trivy --version
 	@echo ""
-	@echo "  ✅  Trivy installed."
+	@echo "  ✅  Trivy $(TRIVY_VERSION) installed."
 	@echo ""
 
 

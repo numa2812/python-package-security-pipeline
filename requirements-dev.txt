@@ -1,0 +1,5 @@
+# Development and test dependencies.
+# Runtime dependencies are defined in scanner/requirements.txt.
+
+-r scanner/requirements.txt
+pytest==9.0.3

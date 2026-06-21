@@ -13,11 +13,13 @@
 #    make scan              # scan with ignore list applied
 #    make scan-all          # scan showing all CVEs (no ignore list)
 #    make install           # install Python dependencies
+#    make install-dev       # Install development and test dependencies
+#    make test              # Run unit tests
 #    make trivy-install     # install Trivy CLI (Linux/macOS)
 #    make help              # show this help message
 # ==============================================================
 
-.PHONY: help install trivy-install scan scan-all
+.PHONY: help install install-dev trivy-install test scan scan-all
 
 # Default target: show help
 .DEFAULT_GOAL := help
@@ -35,6 +37,8 @@ help:
 	@echo "  Python Package Security Pipeline — available commands"
 	@echo ""
 	@echo "  make install          Install scanner dependencies"
+	@echo "  make install-dev      Install development and test dependencies"
+	@echo "  make test             Run unit tests"
 	@echo "  make trivy-install    Install Trivy $(TRIVY_VERSION) CLI (Linux/macOS)"
 	@echo "  make scan             Run security scan with ignore list applied"
 	@echo "  make scan-all         Run security scan showing all CVEs"
@@ -49,6 +53,12 @@ install:
 	pip install -r scanner/requirements.txt
 	@echo ""
 	@echo "  ✅  Python dependencies installed."
+	@echo ""
+
+install-dev:
+	python -m pip install -r requirements-dev.txt
+	@echo ""
+	@echo "  Development and test dependencies installed."
 	@echo ""
 
 trivy-install:
@@ -82,3 +92,11 @@ scan-all:
 	@echo "  Running security scan (all CVEs, no ignore list)..."
 	@echo ""
 	python -m scanner.main packages/requirements.txt
+
+
+# ──────────────────────────────────────────────────────────────
+#  Tests
+# ──────────────────────────────────────────────────────────────
+
+test:
+	python -m pytest -v

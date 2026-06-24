@@ -92,13 +92,15 @@ def run_trivy_scan(requirements_path: str) -> dict:
                 "vulnerabilities": [],
             }
 
-        # Trivy exits with code 0 (no vulns) or 1 (vulns found).
-        # Any other code means something went wrong.
-        if result.returncode not in (0, 1):
-            logger.error("Trivy error: %s", result.stderr.strip())
+        # Without Trivy's --exit-code option, a completed scan returns 0 even
+        # when vulnerabilities are found. Any non-zero code is therefore a
+        # tool/configuration error; the Python security gate evaluates the
+        # parsed findings separately in classify.py.
+        if result.returncode != 0:
+            error_message = result.stderr.strip() or "Trivy scan failed."
             return {
                 "status": "error",
-                "error": result.stderr.strip(),
+                "error": error_message,
                 "vulnerabilities": [],
             }
 

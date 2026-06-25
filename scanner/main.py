@@ -72,7 +72,7 @@ def load_ignore_list(path: Path = IGNORE_LIST_PATH) -> dict:
         return yaml.safe_load(f) or {}
 
 
-def get_ignored_cves(ignore_list: dict, project: str) -> set:
+def get_ignored_cves(ignore_list: dict, project: str, today: date | None = None) -> set:
     """
     Return the set of CVE IDs that are currently valid (not expired)
     for the given project.
@@ -82,7 +82,7 @@ def get_ignored_cves(ignore_list: dict, project: str) -> set:
         today >  expires  →  CVE re-surfaces  (accepted-risk period has ended)
     """
     ignored = set()
-    today = date.today()
+    today = today or date.today()
 
     for cve_id, entry in ignore_list.get(project, {}).items():
         try:

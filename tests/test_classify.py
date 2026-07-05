@@ -67,12 +67,13 @@ def test_cvss_score_takes_precedence_over_trivy_severity():
     assert result["LOW"] == []
 
 
-def test_defaults_to_low_when_score_and_severity_are_unknown():
+def test_classifies_as_unknown_when_score_and_severity_are_unknown():
     vulnerability = make_vulnerability(0.0, severity="UNKNOWN")
 
     result = classify_vulnerabilities([vulnerability])
 
-    assert result["LOW"] == [vulnerability]
+    assert result["UNKNOWN"] == [vulnerability]
+    assert result["LOW"] == []
 
 
 @pytest.mark.parametrize(
@@ -93,6 +94,25 @@ def test_security_gate_decision(score, expected_result):
     assert result is expected_result
 
 
+def test_security_gate_fails_for_unknown_severity():
+    classified = classify_vulnerabilities([
+        make_vulnerability(0.0, severity="UNKNOWN")
+    ])
+
+    result = passes_security_gate(classified)
+
+    assert result is False
+
+
+def test_classifies_as_unknown_when_severity_string_is_unrecognized():
+    vulnerability = make_vulnerability(0.0, severity="NOT_A_REAL_SEVERITY")
+
+    result = classify_vulnerabilities([vulnerability])
+
+    assert result["UNKNOWN"] == [vulnerability]
+    assert result["LOW"] == []
+
+
 def test_security_gate_passes_for_empty_input():
     classified = classify_vulnerabilities([])
 
@@ -107,9 +127,10 @@ def test_formats_summary_in_severity_order():
         make_vulnerability(7.5),
         make_vulnerability(5.0),
         make_vulnerability(2.0),
+        make_vulnerability(0.0, severity="UNKNOWN"),
     ]
     classified = classify_vulnerabilities(vulnerabilities)
 
     result = format_summary(classified)
 
-    assert result == "CRITICAL: 1 | HIGH: 1 | MEDIUM: 1 | LOW: 1"
+    assert result == "CRITICAL: 1 | HIGH: 1 | MEDIUM: 1 | LOW: 1 | UNKNOWN: 1"

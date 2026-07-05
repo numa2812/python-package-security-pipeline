@@ -50,6 +50,7 @@ SEVERITY_ICONS = {
     "HIGH":     "🟠",
     "MEDIUM":   "🟡",
     "LOW":      "🟢",
+    "UNKNOWN":  "❔",
 }
 
 

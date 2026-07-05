@@ -34,7 +34,8 @@ SECURITY_GATE_MINIMUM = "MEDIUM"
 
 # Severity levels ordered from highest to lowest.
 # Used to iterate in a consistent, meaningful order.
-SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"]
+SCORABLE_SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
 
 
 # ──────────────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ def classify_vulnerabilities(vulnerabilities: list) -> dict:
             "HIGH":     [ <vuln dict>, ... ],
             "MEDIUM":   [ <vuln dict>, ... ],
             "LOW":      [ <vuln dict>, ... ],
+            "UNKNOWN":  [ <vuln dict>, ... ],
         }
     """
     # Initialise all buckets so callers never have to check for missing keys.
@@ -91,7 +93,7 @@ def passes_security_gate(classified: dict) -> bool:
         False → blocking vulnerabilities found (merge blocked)
     """
     # Collect all severity levels that block the gate.
-    blocking_levels = _levels_at_or_above(SECURITY_GATE_MINIMUM)
+    blocking_levels = _levels_at_or_above(SECURITY_GATE_MINIMUM) + ["UNKNOWN"]
 
     for level in blocking_levels:
         if classified.get(level):
@@ -132,7 +134,7 @@ def _determine_severity(vuln: dict) -> str:
 
     Primary:  CVSS score (when score > 0.0)
     Fallback: Trivy's severity string (when score == 0.0)
-    Default:  "LOW" (when neither source is usable)
+    Default:  "UNKNOWN" (when neither source is usable)
     """
     score = vuln.get("score", 0.0)
 
@@ -150,10 +152,10 @@ def _determine_severity(vuln: dict) -> str:
 
     logger.warning(
         "Could not determine severity for %s (score=0.0, severity='%s'). "
-        "Defaulting to LOW.",
+        "Defaulting to UNKNOWN.",
         vuln.get("id"), vuln.get("severity", ""),
     )
-    return "LOW"
+    return "UNKNOWN"
 
 
 def _severity_from_score(score: float) -> str:
@@ -165,10 +167,10 @@ def _severity_from_score(score: float) -> str:
         MEDIUM   : score >= 4.0
         LOW      : score >= 0.1
     """
-    for level in SEVERITY_ORDER:          # iterate CRITICAL → HIGH → MEDIUM → LOW
+    for level in SCORABLE_SEVERITY_ORDER:          # iterate CRITICAL → HIGH → MEDIUM → LOW
         if score >= THRESHOLDS[level]:
             return level
-    return "LOW"
+    return "UNKNOWN"
 
 
 def _levels_at_or_above(minimum: str) -> list:

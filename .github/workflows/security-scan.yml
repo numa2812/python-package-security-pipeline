@@ -27,9 +27,10 @@ on:
     branches:
       - main
     paths:
-      # Run only when dependency list or scanner code changes.
+      # Run only when scan inputs or scanner code changes.
       # Avoids unnecessary CI runs on docs/README updates.
       - 'packages/requirements.txt'
+      - 'packages/vulnerable-requirements.txt'
       - 'scanner/**'
 
   push:
@@ -37,6 +38,7 @@ on:
       - main
     paths:
       - 'packages/requirements.txt'
+      - 'packages/vulnerable-requirements.txt'
       - 'scanner/**'
 
 jobs:
@@ -85,7 +87,9 @@ jobs:
           python -m scanner.main packages/requirements.txt --ignore-list
         # -m scanner.main  → runs main.py as a module from the project root,
         #                    ensuring `from scanner.scan import ...` resolves correctly.
-        # --ignore-list    → applies scanner/ignore-list.yaml (MEDIUM CVEs suppressed).
+        # This standard CI scan uses the clean default input.
+        # The intentionally vulnerable demo is run locally via `make scan-demo`.
+        # --ignore-list    → applies scanner/ignore-list.yaml when matching CVEs exist.
         #
         # Exit codes (defined in scanner/main.py):
         #   0 → no blocking vulnerabilities → job succeeds (✅ green)

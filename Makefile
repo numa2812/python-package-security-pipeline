@@ -10,8 +10,9 @@
 #    - pip install -r scanner/requirements.txt
 #
 #  Usage:
-#    make scan              # scan with ignore list applied
-#    make scan-all          # scan showing all CVEs (no ignore list)
+#    make scan              # scan default requirements with ignore list applied
+#    make scan-demo         # scan intentionally vulnerable demo with ignore list
+#    make scan-demo-all     # scan intentionally vulnerable demo without ignore list
 #    make install           # install Python dependencies
 #    make install-dev       # Install development and test dependencies
 #    make test              # Run unit tests
@@ -19,7 +20,7 @@
 #    make help              # show this help message
 # ==============================================================
 
-.PHONY: help install install-dev trivy-install test scan scan-all
+.PHONY: help install install-dev trivy-install test scan scan-demo scan-demo-all
 
 # Default target: show help
 .DEFAULT_GOAL := help
@@ -40,8 +41,9 @@ help:
 	@echo "  make install-dev      Install development and test dependencies"
 	@echo "  make test             Run unit tests"
 	@echo "  make trivy-install    Install Trivy $(TRIVY_VERSION) CLI (Linux/macOS)"
-	@echo "  make scan             Run security scan with ignore list applied"
-	@echo "  make scan-all         Run security scan showing all CVEs"
+	@echo "  make scan             Run default security scan with ignore list applied"
+	@echo "  make scan-demo        Run vulnerable demo scan with ignore list applied"
+	@echo "  make scan-demo-all    Run vulnerable demo scan showing all CVEs"
 	@echo ""
 
 
@@ -83,15 +85,21 @@ trivy-install:
 
 scan:
 	@echo ""
-	@echo "  Running security scan with ignore list..."
+	@echo "  Running default security scan with ignore list..."
 	@echo ""
 	python -m scanner.main packages/requirements.txt --ignore-list
 
-scan-all:
+scan-demo:
 	@echo ""
-	@echo "  Running security scan (all CVEs, no ignore list)..."
+	@echo "  Running vulnerable demo scan with ignore list..."
 	@echo ""
-	python -m scanner.main packages/requirements.txt
+	python -m scanner.main packages/vulnerable-requirements.txt --ignore-list
+
+scan-demo-all:
+	@echo ""
+	@echo "  Running vulnerable demo scan (all CVEs, no ignore list)..."
+	@echo ""
+	python -m scanner.main packages/vulnerable-requirements.txt
 
 
 # ──────────────────────────────────────────────────────────────

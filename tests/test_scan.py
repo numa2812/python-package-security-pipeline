@@ -128,6 +128,33 @@ def test_returns_clean_for_successful_scan_without_vulnerabilities(
     assert not scan.Path(temporary_output).exists()
 
 
+def test_scans_nonstandard_requirements_filename_as_requirements_txt(
+    tmp_path, monkeypatch
+):
+    requirements = tmp_path / "vulnerable-requirements.txt"
+    requirements.write_text("example-package==1.0.0\n", encoding="utf-8")
+
+    def successful_trivy(command, **kwargs):
+        scan_target = scan.Path(command[-1])
+        output_path = _output_path_from(command)
+        scan.Path(output_path).write_text(
+            json.dumps({"Results": []}), encoding="utf-8"
+        )
+
+        assert scan_target.name == "requirements.txt"
+        assert scan_target.read_text(encoding="utf-8") == "example-package==1.0.0\n"
+        assert scan_target.parent != requirements.parent
+        return subprocess.CompletedProcess(
+            command, returncode=0, stdout="", stderr=""
+        )
+
+    monkeypatch.setattr(scan.subprocess, "run", successful_trivy)
+
+    result = scan.run_trivy_scan(str(requirements))
+
+    assert result == {"status": "clean", "vulnerabilities": []}
+
+
 def test_parses_vulnerabilities_and_uses_highest_cvss_score(tmp_path, monkeypatch):
     requirements = _requirements_file(tmp_path)
     trivy_json = {

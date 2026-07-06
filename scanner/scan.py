@@ -12,6 +12,7 @@ by classify.py, keeping each module focused on one task.
 
 import json
 import logging
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -65,6 +66,16 @@ def run_trivy_scan(requirements_path: str) -> dict:
             "vulnerabilities": [],
         }
 
+    # Trivy recognizes Python requirement files by conventional names such as
+    # requirements.txt. For demo inputs with descriptive names, scan a temporary
+    # copy under the conventional filename so detection remains reliable.
+    temp_scan_dir = None
+    scan_target = req_path
+    if req_path.name != "requirements.txt":
+        temp_scan_dir = tempfile.TemporaryDirectory()
+        scan_target = Path(temp_scan_dir.name) / "requirements.txt"
+        shutil.copyfile(req_path, scan_target)
+
     # Use a temporary file so Trivy can write JSON output
     # without interfering with the console.
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
@@ -76,7 +87,7 @@ def run_trivy_scan(requirements_path: str) -> dict:
         "--format",   "json",   # machine-readable output
         "--output",   output_path,
         "--quiet",              # suppress progress bars in CI logs
-        str(req_path),
+        str(scan_target),
     ]
 
     logger.info("Running Trivy: %s", " ".join(cmd))
@@ -107,6 +118,8 @@ def run_trivy_scan(requirements_path: str) -> dict:
         return _parse_trivy_json(output_path)
     finally:
         Path(output_path).unlink(missing_ok=True)
+        if temp_scan_dir is not None:
+            temp_scan_dir.cleanup()
 
 
 # ──────────────────────────────────────────────────────────────

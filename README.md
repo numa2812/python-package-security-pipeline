@@ -5,9 +5,10 @@
 A demo project based on my Bachelor thesis on software supply chain security
 for Python package provisioning.
 
-> **Note on the CI badge:** The badge shows *failing* intentionally.
-> `packages/requirements.txt` contains deliberately vulnerable packages
-> to demonstrate that the Security Gate correctly detects and blocks them.
+> **Note on scan inputs:** The default CI scan uses
+> `packages/requirements.txt` and is expected to pass.
+> The intentionally vulnerable demo input lives in
+> `packages/vulnerable-requirements.txt` and is expected to fail.
 
 ---
 
@@ -42,7 +43,8 @@ Two security processes are implemented, mirroring the thesis design:
 and a GitLab CI/CD vs GitHub Actions comparison.
 
 ```
-packages/requirements.txt
+packages/requirements.txt                 Standard CI input (expected to pass)
+packages/vulnerable-requirements.txt      Vulnerability demo input (expected to fail)
         ↓
   scanner/scan.py          Run Trivy, parse JSON output
         ↓
@@ -75,6 +77,7 @@ packages/requirements.txt
 - **Security Gate**: exit code 1 blocks the PR merge when MEDIUM or above is found
 - **Ignore list** (`scanner/ignore-list.yaml`): temporarily suppress accepted CVEs with expiry dates — re-detected automatically after the deadline
 - **CI/CD parity**: `make scan` reproduces the exact same scan that runs in GitHub Actions
+- **Separated scan inputs**: clean default CI input and intentionally vulnerable demo input
 - **GitLab CI/CD reference** (`docs/.gitlab-ci.yml`): documents the original thesis pipeline design
 
 > **MVP scope:** In this public demo, the ignore list demonstrates the
@@ -109,17 +112,20 @@ make trivy-install
 ### Run the scan
 
 ```bash
-# Scan with ignore list applied (mirrors CI behavior)
+# Scan default input with ignore list applied (mirrors CI behavior)
 make scan
 
-# Scan showing all CVEs including suppressed ones
-make scan-all
+# Run the intentionally vulnerable demo with ignore list applied
+make scan-demo
+
+# Run the intentionally vulnerable demo showing all CVEs
+make scan-demo-all
 ```
 
 ### Expected output
 
-Running `make scan` against the intentionally vulnerable `packages/requirements.txt`
-produces output like this:
+Running `make scan` against the default `packages/requirements.txt`
+is expected to pass:
 
 ```
 ==============================================================
@@ -131,19 +137,29 @@ produces output like this:
            2 CVE(s) will be suppressed.
 
   [Step 2] Running Trivy scan...
-           Trivy found 5 vulnerability/vulnerabilities.
-
-  Ignored CVEs (2 suppressed by ignore list):
-  ⏭   CVE-2018-18074: requests 2.18.0
-  ⏭   CVE-2019-11236: urllib3 1.24.1
+           Trivy found 0 vulnerability/vulnerabilities.
 
   [Step 3] Classifying active vulnerabilities...
 
-  CRITICAL: 2 | HIGH: 1 | MEDIUM: 0 | LOW: 0
+  CRITICAL: 0 | HIGH: 0 | MEDIUM: 0 | LOW: 0 | UNKNOWN: 0
 
-  🔴  CVE-2020-1747 : PyYAML 5.1 → 5.3.1        (CVSS 9.8)
-  🔴  CVE-2021-25289: Pillow 8.1.0 → 8.2.0       (CVSS 9.8)
-  🟠  CVE-2019-10906: Jinja2 2.10.1 → 2.11.3     (CVSS 8.1)
+  ✅  No active vulnerabilities found.
+
+--------------------------------------------------------------
+  ✅  Security Gate PASSED — no MEDIUM/HIGH/CRITICAL found.
+--------------------------------------------------------------
+```
+
+Running `make scan-demo` against the intentionally vulnerable
+`packages/vulnerable-requirements.txt` demonstrates the blocking behavior:
+
+```
+==============================================================
+  Python Package Security Pipeline
+  Target : packages/vulnerable-requirements.txt
+==============================================================
+
+  ...
 
 --------------------------------------------------------------
   ❌  Security Gate FAILED — blocking vulnerabilities found.
@@ -165,7 +181,8 @@ python-package-security-pipeline/
 │   ├── example-output.md     Annotated CLI output examples
 │   └── .gitlab-ci.yml        GitLab CI/CD reference (not executable here)
 ├── packages/
-│   └── requirements.txt      Sample dependencies (intentionally vulnerable)
+│   ├── requirements.txt                  Default CI input (expected to pass)
+│   └── vulnerable-requirements.txt       Demo input (intentionally vulnerable)
 ├── scanner/
 │   ├── scan.py               Trivy invocation and JSON parsing
 │   ├── classify.py           CVSS-based classification and Security Gate

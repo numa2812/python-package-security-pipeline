@@ -13,7 +13,8 @@ implemented originally in GitLab CI/CD and ported to GitHub Actions for this pub
 
 | File | Role |
 |------|------|
-| `packages/requirements.txt` | Input: Python dependency list to be scanned |
+| `packages/requirements.txt` | Default input for the standard CI scan |
+| `packages/vulnerable-requirements.txt` | Intentionally vulnerable input for local demo scans |
 | `scanner/scan.py` | Runs Trivy via subprocess; parses JSON output |
 | `scanner/classify.py` | Groups CVEs by CVSS severity; evaluates Security Gate |
 | `scanner/ignore-list.yaml` | Configuration: CVEs accepted as known risk (with expiry) |
@@ -25,10 +26,12 @@ implemented originally in GitLab CI/CD and ported to GitHub Actions for this pub
 
 ## Process 1: Package Request and Approval (MR-triggered)
 
-Triggered automatically when a Pull Request modifies `packages/requirements.txt`
-or any file under `scanner/`.
+Triggered automatically when a Pull Request modifies `packages/requirements.txt`,
+`packages/vulnerable-requirements.txt`, or any file under `scanner/`.
 The pipeline acts as a **Security Gate**: the merge is blocked if any
 MEDIUM, HIGH, or CRITICAL vulnerability is found in the active CVE list.
+The CI workflow scans the clean default input; the vulnerable input is kept
+for local demonstrations of the blocking behavior.
 
 ```mermaid
 flowchart TD
@@ -42,7 +45,7 @@ flowchart TD
 
     subgraph pipeline["🐍 Scanner Pipeline"]
         direction TB
-        REQ[/"packages/\nrequirements.txt"/]
+        REQ[/"packages/\nrequirements.txt\n(default CI input)"/]
         SCAN["scan.py\nRun Trivy via subprocess"]
         IGN[/"scanner/\nignore-list.yaml"/]
         FILTER["main.py\nFilter ignored CVEs"]

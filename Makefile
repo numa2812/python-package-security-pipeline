@@ -20,14 +20,58 @@
 #    make help              # show this help message
 # ==============================================================
 
-.PHONY: help install install-dev trivy-install test scan scan-demo scan-demo-all
+.PHONY: help install install-dev trivy-install test scan scan-demo scan-demo-all docker-build docker-help docker-scan docker-scan-demo
 
 # Default target: show help
 .DEFAULT_GOAL := help
 
 # Trivy version — keep in sync with .github/workflows/security-scan.yml
 TRIVY_VERSION ?= 0.69.3
+DOCKER_IMAGE ?= python-package-security-pipeline
+TRIVY_DB_REPOSITORY ?= ghcr.io/aquasecurity/trivy-db:2
 
+
+# ──────────────────────────────────────────────────────────────
+#  Docker
+# ──────────────────────────────────────────────────────────────
+
+docker-build:
+	docker build \
+		--build-arg TRIVY_VERSION=$(TRIVY_VERSION) \
+		-t $(DOCKER_IMAGE) .
+
+docker-help:
+	docker run --rm $(DOCKER_IMAGE) --help
+
+docker-scan:
+	docker run --rm \
+		-e TRIVY_DB_REPOSITORY=$(TRIVY_DB_REPOSITORY) \
+		$(DOCKER_IMAGE) packages/requirements.txt --ignore-list
+
+docker-scan-demo:
+	@tmp_log=$$(mktemp); \
+	trap 'rm -f "$$tmp_log"' EXIT; \
+	docker run --rm \
+		-e TRIVY_DB_REPOSITORY=$(TRIVY_DB_REPOSITORY) \
+		$(DOCKER_IMAGE) packages/vulnerable-requirements.txt --ignore-list > "$$tmp_log" 2>&1; \
+	code=$$?; \
+	cat "$$tmp_log"; \
+	if [ $$code -eq 1 ] && grep -q "Security Gate FAILED" "$$tmp_log"; then \
+		echo ""; \
+		echo "  ✅  Vulnerable demo behaved as expected: Security Gate failed."; \
+		echo ""; \
+		exit 0; \
+	elif [ $$code -eq 0 ]; then \
+		echo ""; \
+		echo "  ❌  Unexpected pass: vulnerable demo should fail the Security Gate."; \
+		echo ""; \
+		exit 1; \
+	else \
+		echo ""; \
+		echo "  ❌  Unexpected Docker or scanner error. Exit code: $$code"; \
+		echo ""; \
+		exit $$code; \
+	fi
 
 # ──────────────────────────────────────────────────────────────
 #  Help
@@ -37,6 +81,10 @@ help:
 	@echo ""
 	@echo "  Python Package Security Pipeline — available commands"
 	@echo ""
+	@echo "  make docker-build     Build Docker image"
+	@echo "  make docker-help      Show scanner CLI help from Docker image"
+	@echo "  make docker-scan      Run default scan from Docker image"
+	@echo "  make docker-scan-demo Run vulnerable demo scan from Docker image"
 	@echo "  make install          Install scanner dependencies"
 	@echo "  make install-dev      Install development and test dependencies"
 	@echo "  make test             Run unit tests"

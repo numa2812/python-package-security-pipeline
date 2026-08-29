@@ -21,7 +21,7 @@ The goal is to show how **Software Composition Analysis (SCA)**
 can be integrated into a CI/CD workflow to:
 
 - detect vulnerable dependencies on every Pull Request
-- classify findings by CVSS severity (CRITICAL / HIGH / MEDIUM / LOW)
+- classify findings by CVSS severity (CRITICAL / HIGH / MEDIUM / LOW / UNKNOWN)
 - block merges automatically when blocking vulnerabilities are found
 - manage accepted risks with an expiry-based ignore list
 
@@ -64,6 +64,7 @@ packages/vulnerable-requirements.txt      Vulnerability demo input (expected to 
 | SCA / Scanning | [Trivy](https://trivy.dev) |
 | CI/CD (this demo) | GitHub Actions |
 | CI/CD (original thesis) | GitLab CI/CD |
+| Containerization | Docker |
 | Language | Python 3.11 |
 | Config | YAML |
 | Local tooling | Make |
@@ -73,11 +74,12 @@ packages/vulnerable-requirements.txt      Vulnerability demo input (expected to 
 ## Key Features
 
 - **Automated vulnerability scanning** via Trivy on every Pull Request
-- **CVSS-based classification** into CRITICAL / HIGH / MEDIUM / LOW
-- **Security Gate**: exit code 1 blocks the PR merge when MEDIUM or above is found
+- **CVSS-based classification** into CRITICAL / HIGH / MEDIUM / LOW / UNKNOWN
+- **Security Gate**: exit code 1 blocks the PR merge when MEDIUM or above, or UNKNOWN, is found
 - **Ignore list** (`scanner/ignore-list.yaml`): temporarily suppress accepted CVEs with expiry dates — re-detected automatically after the deadline
 - **CI/CD parity**: `make scan` reproduces the exact same scan that runs in GitHub Actions
 - **Separated scan inputs**: clean default CI input and intentionally vulnerable demo input
+- **Docker support**: run the scanner CLI in a reproducible container with Python and Trivy included
 - **GitLab CI/CD reference** (`docs/.gitlab-ci.yml`): documents the original thesis pipeline design
 
 > **MVP scope:** In this public demo, the ignore list demonstrates the
@@ -94,6 +96,7 @@ packages/vulnerable-requirements.txt      Vulnerability demo input (expected to 
 
 - Python 3.11+
 - [Trivy CLI](https://trivy.dev/latest/getting-started/installation/)
+- Docker, optional for containerized execution
 
 ### Setup
 
@@ -121,6 +124,31 @@ make scan-demo
 # Run the intentionally vulnerable demo showing all CVEs
 make scan-demo-all
 ```
+
+### Run with Docker
+
+The scanner can also be executed in a Docker container. The image includes
+Python, the scanner dependencies, and the pinned Trivy CLI version.
+
+```bash
+# Build the Docker image
+make docker-build
+
+# Show the scanner CLI help from the container
+make docker-help
+
+# Run the default scan from the container
+make docker-scan
+
+# Run the intentionally vulnerable demo from the container
+make docker-scan-demo
+```
+
+`make docker-scan` is expected to pass for the clean default input.
+
+`make docker-scan-demo` is expected to detect blocking vulnerabilities. The
+Makefile treats this demo as successful only when the Security Gate fails as
+expected.
 
 ### Expected output
 
@@ -188,7 +216,9 @@ python-package-security-pipeline/
 │   ├── classify.py           CVSS-based classification and Security Gate
 │   ├── ignore-list.yaml      Accepted-risk CVE list with expiry dates
 │   └── main.py               Pipeline orchestrator (CLI entry point)
-└── Makefile                  Local development shortcuts
+├── Dockerfile                Container image for the scanner CLI
+├── .dockerignore             Excludes local/dev files from Docker build context
+└── Makefile                  Local development and Docker shortcuts
 ```
 
 ---
